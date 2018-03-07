@@ -1,31 +1,8 @@
-import json
 import re
-from souphelper.souputils import SoupHelper, getURL
+from os.path import dirname, abspath
+import utils
+from souphelper.souputils import SoupHelper
 
-
-#uri2 = "https://www.pagina12.com.ar/16889-el-poder-de-la-memoria"
-#pagina = SoupHelper(getURL(uri2))
-#pagina.getBlock("^article-date$", 1)
-
-def linksFrom (uri):
-    """ Carga el site de pagina12.com.ar y busca todos los links
-    de las noticias que quiero grabar, en este caso las principales.
-    Params: str uri
-    Return: array of links. """
-    #uri = "https://www.pagina12.com.ar"
-    #site = SoupHelper(getURL(uri))
-    #site.getBlock("^block-articles$", 1)
-    #noticias = SoupHelper(str(site.block))
-    noticias = SoupHelper(getURL(uri))
-    noticias.getAllBlocks("^nota$")
-    #import pdb;pdb.set_trace()
-    noticias.linksInElements("^figure")
-    links = []
-    for (link, text) in noticias.dictLinks.items():
-
-        links.append(link)
-
-    return links
 
 def forLinks (links):
     """ Trabajo con un array de links
@@ -55,98 +32,23 @@ def forLinks (links):
         #print (articulo.dictLinks.items())
         print ("------------------")
 
-def linksBlock (soup):
-   """ TEMPORAL
-   Como linksInBlocks() solo trae el primer link encontrado
-   se realizó un nuevo metodo para que busque todos los links.
-   Recibe un objeto del tipo SoupTag
-   y devuelve un objeto del tipo Dict. """
-
-   #print (soup) # debug
-   sresult = soup.find_all("a") # .attrs['href']
-   links={}
-   for s in sresult:
-       links[s.attrs['href']]= s.text
-       #if not re.search('^\/$',s.attrs['href']):
-       #    print ("####")
-       #    print (s.text)
-       #    print (s.attrs['href'])
-       #    print ("####")
-   #print (links.items())
-   return links
-
-class Article:
-    def __init__(self):
-        self.empty = ""
-        self.topic = {}
-        self.section = {}
-        self.title = ""
-        self.text = ""
-        self.date = ""
-        self.URL = ""
-    def setURL (self, url):
-        self.URL = str(url)
-    def setDate (self, date):
-        self.date = str(date)
-    def setTitle (self, title):
-        self.title = str(title)
-    def setText (self, text):
-        self.text = str(text)
-    def setSection(self, links):
-        """ Metodo que recibe un diccionario con el par link_path / text
-        y devolera tambien un diccionario pero con un unico valor. """
-        for (link_path, text) in links.items():
-            if not re.search('^Pagina12$', text):
-                if re.search('temas', link_path):
-                    self.has_topic = True
-                    self.topic[link_path] = text
-                else:
-                    self.section[link_path] = text
-    def setDicts(self):
-        self.extractID()
-        self.cabecera = {"id":self.ID, "IDdate":self.date + "-" + self.ID}
-        if self.topic:
-            self.properties = {"section":self.section, "topic":self.topic, "date":self.date, "URL":self.URL}
-        else:
-            self.properties = {"section":self.section, "date":self.date, "URL":self.URL}
-        self.info = {"titulo":self.title, "cuerpo":self.text}
-
-        self.fullDict = {"header": self.cabecera, "properties":self.properties, "texts": self.info}
-
-    def jDump (self, dumpDict):
-        self.oJson=json.dumps(dumpDict, indent=4, ensure_ascii=False)
-        print (self.oJson)
-
-    def writeFile(self, pathjson):
-        f = pathjson + self.cabecera["IDdate"] + ".json"
-        with open (f, 'w') as json_data:
-            json_data.write(self.oJson)
-
-    def extractID(self):
-        match = re.search('(?<=com\.ar\/)[0-9]+',self.URL)
-        self.ID = str(match.group(0))
-    def printNews(self):
-        print ("URL: " + self.URL)
-        print ("Title: " + self.title)
-        print ("Section: " + str(self.section))
-        if self.topic:
-            print ("Topic: " + str(self.topic))
-        print ("Date: " + self.date)
-    """def writeToJson(self):
-        #stuff
-    def writeToDB(self):
-   """
 
 if __name__ == "__main__":
     # por el momento creo el objeto tipo soup
     # dentro del metodo linksFrom, pero probablemente
     # en el futuro necesite seguir trabajando con el
     # ej: sacar el featured content.
-    links = linksFrom("https://www.lanacion.com.ar/revista-brando-t61735/")
-    # debug
-    t = []
-    for l in links:
-        t.append("https://www.lanacion.com.ar" + l)
+    current_dir = dirname(abspath(__file__))
+    work_dir = "{}/files".format(dirname(current_dir))
+    uri = "https://www.lanacion.com.ar/revista-brando-t61735/"
+
+    # Busca en la pagina principal, debo selecionar el bloque mas inmediato
+    # que contiene los links y el bloque que contiene los links,
+    # retorna un array con los links
+    links = utils.linksFrom(uri, "^nota$", "^figure")
+    true_links = utils.compareLinks(links, work_dir)
+
+    for l in true_links:
         print (l)
 
-    forLinks(t)
+    #forLinks(t)
