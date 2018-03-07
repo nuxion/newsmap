@@ -29,9 +29,10 @@ def compareLinks(new_links, work_dir):
     old_links = []
     with open(links_file, 'r') as lfile:
         for line in lfile:
-            old_links.append(line)
+            # replace '\n'
+            old_links.append(line.rstrip())
     true_links = []
-
+    import pdb; pdb.set_trace()
     for elem in new_links:
         try:
             old_links.remove(elem)
@@ -40,7 +41,7 @@ def compareLinks(new_links, work_dir):
 
     with open(links_file, 'a') as lfile:
         for l in true_links:
-            lfile.write(l)
+            lfile.write("{}\n".format(l))
 
     return true_links
 
