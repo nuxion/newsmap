@@ -19,3 +19,5 @@ Tiene el circuito completo:
 - consigue el link de cada noticia
 - por cada noticia instancia un objeto de la clase Articlle, setea el diccionario
 - y arma un json 
+
+**copiado desde bitbacket**
