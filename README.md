@@ -1,4 +1,4 @@
-#README 
+# README 
 
 ## Install 
 
@@ -20,4 +20,4 @@ Tiene el circuito completo:
 - por cada noticia instancia un objeto de la clase Articlle, setea el diccionario
 - y arma un json 
 
-**copiado desde bitbacket**
+**copiado desde bitbucket**

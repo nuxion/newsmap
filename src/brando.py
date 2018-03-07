@@ -1,152 +1,75 @@
-import json
 import re
-from souphelper.souputils import SoupHelper, getURL
+import json
+from os.path import dirname, abspath
+import utils
+from souphelper.souputils import SoupHelper,getURL
 
 
-#uri2 = "https://www.pagina12.com.ar/16889-el-poder-de-la-memoria"
-#pagina = SoupHelper(getURL(uri2))
-#pagina.getBlock("^article-date$", 1)
+def makeArticle(uri, _id):
+    """ Arma el json de la noticia
+    return <<dict_type>>. """
 
-def linksFrom (uri):
-    """ Carga el site de pagina12.com.ar y busca todos los links
-    de las noticias que quiero grabar, en este caso las principales.
-    Params: str uri
-    Return: array of links. """
-    #uri = "https://www.pagina12.com.ar"
-    #site = SoupHelper(getURL(uri))
-    #site.getBlock("^block-articles$", 1)
-    #noticias = SoupHelper(str(site.block))
-    noticias = SoupHelper(getURL(uri))
-    noticias.getAllBlocks("^nota$")
-    #import pdb;pdb.set_trace()
-    noticias.linksInElements("^figure")
-    links = []
-    for (link, text) in noticias.dictLinks.items():
 
-        links.append(link)
+    noticia = {'_id':_id}
+    html_article = SoupHelper(getURL(uri))
 
-    return links
+    # Fecha
+    html_article.getBlock("^fecha$", 1)
+    noticia.update({'fecha': str(html_article.block.text)})
 
-def forLinks (links):
-    """ Trabajo con un array de links
-    para ir armando la informacion de cada una de las noticias.
-    Params: array of links. """
+    # Busco el titulo de la noticia
+    html_article.getBlock("^encabezado$",1)
+    titular = html_article.block.find(class_=re.compile("^titulo"))
+    noticia.update({'titulo': str(titular.text)})
 
-    for l in links:
-        articulo = SoupHelper(getURL(l))
-        news = Article()
-        news.setURL(l)
-        articulo.getBlock("^fecha$", 1)
-        news.setDate (articulo.block.text)
-        # Busco el titulo de la noticia
-        articulo.getBlock("^encabezado$",1)
-        titular = articulo.block.find(class_=re.compile("^titulo"))
-        news.setTitle(titular.text)
+    # Busco y seteo el cuerpo de la noticia
+    html_article.getBlockByID("^cuerpo", 1)
+    noticia.update({'texto': str(html_article.block.text)})
 
-        # Busco y seteo el cuerpo de la noticia
-        articulo.getBlockByID("^cuerpo", 1)
-        news.setText(articulo.block.text)
-        news.printNews()
-        news.setDicts()
-        news.jDump(news.fullDict)
-        news.writeFile("json/")
-        #articulo.linksInBlocks("^article-breadcrumb$")
-        #linksBlock(articulo)
-        #print (articulo.dictLinks.items())
-        print ("------------------")
+    return noticia
+def makeID(uri):
+    """
+    Aparentemente las uris de las noticias en la nacion tienen un ID asociado.
+    se extrae solo el numero como tentativa de id, habria que sumar la fecha
+    o calcular un timestamp de la notica. Otra opcion podria ser
+    hacer un hash del texto o del primer parrafo de la noticia.
+    """
+    ONLY_NUMS = re.compile('[0-9]*').search
+    try:
+        return int(ONLY_NUMS(s_dat).group(0))
+    except AttributeError:
+        return -1
+    except:
+        return -2
 
-def linksBlock (soup):
-   """ TEMPORAL
-   Como linksInBlocks() solo trae el primer link encontrado
-   se realizó un nuevo metodo para que busque todos los links.
-   Recibe un objeto del tipo SoupTag
-   y devuelve un objeto del tipo Dict. """
 
-   #print (soup) # debug
-   sresult = soup.find_all("a") # .attrs['href']
-   links={}
-   for s in sresult:
-       links[s.attrs['href']]= s.text
-       #if not re.search('^\/$',s.attrs['href']):
-       #    print ("####")
-       #    print (s.text)
-       #    print (s.attrs['href'])
-       #    print ("####")
-   #print (links.items())
-   return links
-
-class Article:
-    def __init__(self):
-        self.empty = ""
-        self.topic = {}
-        self.section = {}
-        self.title = ""
-        self.text = ""
-        self.date = ""
-        self.URL = ""
-    def setURL (self, url):
-        self.URL = str(url)
-    def setDate (self, date):
-        self.date = str(date)
-    def setTitle (self, title):
-        self.title = str(title)
-    def setText (self, text):
-        self.text = str(text)
-    def setSection(self, links):
-        """ Metodo que recibe un diccionario con el par link_path / text
-        y devolera tambien un diccionario pero con un unico valor. """
-        for (link_path, text) in links.items():
-            if not re.search('^Pagina12$', text):
-                if re.search('temas', link_path):
-                    self.has_topic = True
-                    self.topic[link_path] = text
-                else:
-                    self.section[link_path] = text
-    def setDicts(self):
-        self.extractID()
-        self.cabecera = {"id":self.ID, "IDdate":self.date + "-" + self.ID}
-        if self.topic:
-            self.properties = {"section":self.section, "topic":self.topic, "date":self.date, "URL":self.URL}
-        else:
-            self.properties = {"section":self.section, "date":self.date, "URL":self.URL}
-        self.info = {"titulo":self.title, "cuerpo":self.text}
-
-        self.fullDict = {"header": self.cabecera, "properties":self.properties, "texts": self.info}
-
-    def jDump (self, dumpDict):
-        self.oJson=json.dumps(dumpDict, indent=4, ensure_ascii=False)
-        print (self.oJson)
-
-    def writeFile(self, pathjson):
-        f = pathjson + self.cabecera["IDdate"] + ".json"
-        with open (f, 'w') as json_data:
-            json_data.write(self.oJson)
-
-    def extractID(self):
-        match = re.search('(?<=com\.ar\/)[0-9]+',self.URL)
-        self.ID = str(match.group(0))
-    def printNews(self):
-        print ("URL: " + self.URL)
-        print ("Title: " + self.title)
-        print ("Section: " + str(self.section))
-        if self.topic:
-            print ("Topic: " + str(self.topic))
-        print ("Date: " + self.date)
-    """def writeToJson(self):
-        #stuff
-    def writeToDB(self):
-   """
 
 if __name__ == "__main__":
     # por el momento creo el objeto tipo soup
     # dentro del metodo linksFrom, pero probablemente
     # en el futuro necesite seguir trabajando con el
     # ej: sacar el featured content.
-    links = linksFrom("https://www.lanacion.com.ar/revista-brando-t61735/")
-    # debug
-    t = []
-    for l in links:
-        t.append("https://www.lanacion.com.ar" + l)
-        print (l)
+    current_dir = dirname(abspath(__file__))
+    work_dir = "{}/files/brando".format(dirname(current_dir))
+    base_url="https://www.lanacion.com.ar"
+    uri = "{}/revista-brando-t61735/".format(base_url)
 
-    forLinks(t)
+    # Busca en la pagina principal, debo selecionar el bloque mas inmediato
+    # que contiene los links y el bloque que contiene los links,
+    # retorna un array con los links
+    links = utils.linksFrom(uri, "^nota$", "^figure")
+    true_links = utils.compareLinks(links, work_dir)
+
+    for l in true_links:
+        article_uri = "{}{}".format(base_url, l)
+        _id = makeID(l)
+        # armo el articulo basandome en el html del site
+        article = makeArticle(article_uri, _id)
+        # armo el json
+        json_article = json.dumps(article, indent=4)
+        # salvo el json usando el nombre del uri
+        name_file = "{}/{}.json".format(work_dir, l.strip("/"))
+        with open(name_file, 'w') as json_file:
+            json_file.write(json_article)
+        print (json_article)
+
