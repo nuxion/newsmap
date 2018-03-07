@@ -2,22 +2,22 @@
 
 ## Install 
 
-- Crear enviroment: 
+1- Crear enviroment: 
 
 ´´´
 virtualenv -p python3 ~/.envs/newsmap
 ´´´
 
-- inicializar el submodulo de souphelper
+2- instalar requierimientos:
+pip3 install -r requirements.txt
+
+3- ejecutar el script dir_structure.sh desde la raiz del proyecto
+o bien crear los directorios a mano como lo describe el escript. 
+
+## Ejecucion
+
+Ejecutar brando.py y ohlala.py para bajar las noticias. 
+se puede ejecutar repetidas veces ya que trabaja solo sobre las noticias nuevas.
 
 
-## CHANGELOG 
-Primer release 0.1b 
 
-Tiene el circuito completo:
-- busca en la pagina principal de pagina12, las noticias mas importantes. 
-- consigue el link de cada noticia
-- por cada noticia instancia un objeto de la clase Articlle, setea el diccionario
-- y arma un json 
-
-**copiado desde bitbucket**
