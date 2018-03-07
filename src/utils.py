@@ -32,7 +32,6 @@ def compareLinks(new_links, work_dir):
             # replace '\n'
             old_links.append(line.rstrip())
     true_links = []
-    import pdb; pdb.set_trace()
     for elem in new_links:
         try:
             old_links.remove(elem)
